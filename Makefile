@@ -1,7 +1,7 @@
 compile: export DIR ?= ./svolti/
 compile: export FILE ?= file.c
 compile:
-	@gcc $(DIR)$(FILE) -o ./bin/${$(FILE)::-2} -pthread
+	@gcc $(DIR)$(FILE) -o ./bin/$(FILE:%.c=%) -pthread
 .PHONY: compile
 
 build:
