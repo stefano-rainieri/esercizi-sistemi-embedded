@@ -46,7 +46,7 @@ int sveglia(struct gestore_t *g)
 
         return 1;
     } else if (STATO_LIBERO == g->stato_a && STATO_LIBERO == g->stato_b && g->bloccati_2 > 0) {
-        sem_post(&g->bloccati_2);
+        sem_post(&g->priv_2);
 
         return 1;
     }
@@ -90,7 +90,7 @@ void end_q(struct gestore_t *g, char risorsa)
         g->stato_b = STATO_LIBERO;
     }
 
-    if (!sveglia(&g)) {
+    if (!sveglia(g)) {
         sem_post(&g->mutex);
     }
 }
@@ -117,7 +117,7 @@ void end_a(struct gestore_t *g)
 
     g->stato_a = STATO_LIBERO;
 
-    if (!sveglia(&g)) {
+    if (!sveglia(g)) {
         sem_post(&g->mutex);
     }
 }
@@ -144,7 +144,7 @@ void end_b(struct gestore_t *g)
 
     g->stato_b = STATO_LIBERO;
 
-    if (!sveglia(&g)) {
+    if (!sveglia(g)) {
         sem_post(&g->mutex);
     }
 }
@@ -173,37 +173,37 @@ void end_2(struct gestore_t *g)
     g->stato_a = STATO_LIBERO;
     g->stato_b = STATO_LIBERO;
 
-    if (!sveglia(&g)) {
+    if (!sveglia(g)) {
         sem_post(&g->mutex);
     }
 }
 
 void ric_q(struct gestore_t *g)
 {
-    char risorsa = start_q(&g);
+    char risorsa = start_q(g);
     printf("Q -> %c", risorsa);
-    end_q(&g, risorsa);
+    end_q(g, risorsa);
 }
 
 void ric_a(struct gestore_t *g)
 {
-    start_a(&g);
+    start_a(g);
     printf("A");
-    end_a(&g);
+    end_a(g);
 }
 
 void ric_b(struct gestore_t *g)
 {
-    start_b(&g);
+    start_b(g);
     printf("B");
-    end_b(&g);
+    end_b(g);
 }
 
 void ric_2(struct gestore_t *g)
 {
-    start_2(&g);
+    start_2(g);
     printf("2 -> AB");
-    end_2(&g);
+    end_2(g);
 }
 
 void delay()
