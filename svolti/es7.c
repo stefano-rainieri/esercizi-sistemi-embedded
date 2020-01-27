@@ -6,6 +6,7 @@
 #include <semaphore.h>
 #include <pthread.h>
 #include <stdlib.h>
+#include <unistd.h>
 
 #define SHAVING_ITERATIONS 1000
 #define PAYING_ITERATIONS 100
@@ -18,7 +19,10 @@ struct negozio_t{
 	int divano;
 	int cassiere;
 	pthread_mutex_t mutex;
-	pthread_cond_t cond;
+	pthread_cond_t divani;
+	pthread_cond_t sedia;
+	pthread_cond_t cassieri;
+
 }negozio;
 
 void negozio_init (struct negozio_t *negozio)
@@ -35,7 +39,9 @@ void negozio_init (struct negozio_t *negozio)
 	pthread_mutexattr_destroy(&ma);
 	
 	pthread_condattr_init(&ca);
-	pthread_cond_init(&negozio->cond, &ca);
+	pthread_cond_init(&negozio->sedia, &ca);
+	pthread_cond_init(&negozio->cassieri, &ca);
+	pthread_cond_init(&negozio->divani, &ca);
 	pthread_condattr_destroy(&ca);
 		
 }
@@ -51,7 +57,7 @@ void *client( void *arg)
 	// posso entrare? 
 	while(1)
 	{
-		if(negozio.divano <= DIVANI) // 
+		if(negozio.divano < DIVANI) // 
 		{
 			// mi siedo
 			negozio.divano ++;
@@ -62,28 +68,29 @@ void *client( void *arg)
 		{
 			// aspetto
 			printf("%d: non c'e' posto sul divano, aspetto fuori\n",cliente);
-			pthread_cond_wait(&negozio.cond, &negozio.mutex);
+			pthread_cond_wait(&negozio.divani, &negozio.mutex);
 		}
 	}
-		pthread_mutex_unlock(&negozio.mutex);
+	pthread_mutex_unlock(&negozio.mutex);
+	sleep(1);
 	pthread_mutex_lock(&negozio.mutex);
 
 	// tocca a me?
 	while(1)
 	{
-		if(negozio.barbieri <= SEDIE) // 
+		if(negozio.barbieri < SEDIE) // 
 		{
 			// mi siedo
 			printf("%d: tocca a me, mi alzo dal divano\n",cliente);
 			negozio.barbieri ++;
 			negozio.divano --;
-			pthread_cond_broadcast(&negozio.cond);// segnalo a tutti che si è liberato un posto sul divano
+			pthread_cond_signal(&negozio.divani);// segnalo a tutti che si è liberato un posto sul divano
 			for(i = 0; i<SHAVING_ITERATIONS; i++ ); // mi fanno la barba
 			// ho finito -> devo andare a pagare
 			negozio.barbieri --;
 			printf("%d: ho finito di fare la barba, vado a pagare\n",cliente);
 
-			pthread_cond_broadcast(&negozio.cond);
+			pthread_cond_signal(&negozio.sedia);
 			break;
 		}
 		else
@@ -91,10 +98,11 @@ void *client( void *arg)
 			// aspetto
 			printf("%d: sto aspettando seduto sul divano\n",cliente);
 
-			pthread_cond_wait(&negozio.cond, &negozio.mutex);
+			pthread_cond_wait(&negozio.sedia, &negozio.mutex);
 		}
 	}
 		pthread_mutex_unlock(&negozio.mutex);
+		sleep(1);
 	pthread_mutex_lock(&negozio.mutex);
 
 	// posso andare a pagare?
@@ -110,7 +118,7 @@ void *client( void *arg)
 			// ho finito -> esco
 			negozio.cassiere --;
 			printf("%d: ho finito di pagare, esco! ciao!!!\n",cliente);
-			pthread_cond_broadcast(&negozio.cond);
+			pthread_cond_signal(&negozio.cassieri);
 			break;
 
 		}
@@ -119,7 +127,7 @@ void *client( void *arg)
 			// aspetto
 			printf("%d: sto aspettando che si liberi il cassiere\n",cliente);
 
-			pthread_cond_wait(&negozio.cond, &negozio.mutex);
+			pthread_cond_wait(&negozio.cassieri, &negozio.mutex);
 		}
 	}
 	pthread_mutex_unlock(&negozio.mutex);
